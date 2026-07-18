@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threshold - Optimización Económica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#0F172A',
+                        primary: '#1D4ED8',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+    
+    <!-- Topbar -->
+    <header class="bg-navy text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <svg class="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <a href="{% url 'dashboard' %}" class="text-2xl font-bold tracking-tight">Threshold <span class="text-secondary text-sm font-medium">ERP Predictivo</span></a>
+            </div>
+            <div>
+                <a href="{% url 'dashboard' %}" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200 shadow flex items-center space-x-2">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Volver al Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Title and Introduction -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-extrabold text-navy tracking-tight">Simulador de Optimización Económica</h1>
+            <p class="text-slate-600 mt-2">
+                Automatiza la maximización de ganancias y la reducción de costos aplicando cálculo diferencial a partir de curvas estimadas de demanda y costo.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Parameters Panel -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-navy mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        Parámetros de Simulación
+                    </h2>
+                    <form method="get" class="space-y-4">
+                        <!-- a -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Precio de Reserva (a)</label>
+                            <input type="number" step="any" name="a" value="{{ params.a }}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <span class="text-[10px] text-slate-400">Precio máximo teórico cuando la demanda es 0.</span>
+                        </div>
+                        
+                        <!-- b -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Sensibilidad de Demanda (b)</label>
+                            <input type="number" step="any" name="b" value="{{ params.b }}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <span class="text-[10px] text-slate-400">Cuánto disminuye el precio por cada unidad producida extra.</span>
+                        </div>
+
+                        <!-- c -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Costo Variable Base (c)</label>
+                            <input type="number" step="any" name="c" value="{{ params.c }}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <span class="text-[10px] text-slate-400">Costo base directo por cada unidad fabricada.</span>
+                        </div>
+
+                        <!-- d -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Ineficiencia de Producción (d)</label>
+                            <input type="number" step="any" name="d" value="{{ params.d }}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <span class="text-[10px] text-slate-400">Coeficiente cuadrático que modela ineficiencias logísticas a gran escala.</span>
+                        </div>
+
+                        <!-- F -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Costo Fijo (F)</label>
+                            <input type="number" step="any" name="F" value="{{ params.F }}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <span class="text-[10px] text-slate-400">Costos invariantes (infraestructura, salarios base).</span>
+                        </div>
+
+                        <!-- Max Capacity -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Capacidad Operativa Máxima</label>
+                            <input type="number" name="max_cap" value="{{ params.max_cap }}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <span class="text-[10px] text-slate-400">Límite absoluto físico de producción.</span>
+                        </div>
+
+                        <button type="submit" class="w-full bg-primary hover:bg-secondary text-white py-2.5 rounded-lg text-sm font-semibold transition duration-200 shadow-md shadow-blue-500/20">
+                            Calcular y Actualizar
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results & Graph Panel -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Results Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Optimal Q -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <span class="block text-xs font-medium text-slate-400 uppercase">Volumen Óptimo (q*)</span>
+                        <span class="block text-2xl font-bold text-navy mt-1">{{ result.optimal_q }}</span>
+                        <span class="block text-[10px] text-slate-500 mt-1">unidades</span>
+                    </div>
+
+                    <!-- Optimal Price -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <span class="block text-xs font-medium text-slate-400 uppercase">Precio Óptimo (P*)</span>
+                        <span class="block text-2xl font-bold text-navy mt-1">${{ result.optimal_price }}</span>
+                        <span class="block text-[10px] text-slate-500 mt-1">por unidad</span>
+                    </div>
+
+                    <!-- Margen / Costo total -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <span class="block text-xs font-medium text-slate-400 uppercase">Costo en el Óptimo</span>
+                        <span class="block text-2xl font-bold text-amber-600 mt-1">${{ result.cost_at_opt }}</span>
+                        <span class="block text-[10px] text-slate-500 mt-1">fijo + variable</span>
+                    </div>
+
+                    <!-- Max Profit -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <span class="block text-xs font-medium text-slate-400 uppercase">Ganancia Máxima (Π*)</span>
+                        <span class="block text-2xl font-bold text-emerald-600 mt-1">${{ result.max_profit }}</span>
+                        <span class="block text-[10px] text-slate-500 mt-1">ingreso - costo</span>
+                    </div>
+                </div>
+
+                <!-- Info message banner -->
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-700 flex items-start space-x-2">
+                    <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <span class="font-semibold">Resultado de la optimización:</span> {{ result.message }}
+                    </div>
+                </div>
+
+                <!-- Graph Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-base font-bold text-navy mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        Gráfico del Comportamiento Económico
+                    </h3>
+                    <div class="relative w-full h-[350px]">
+                        <canvas id="optimizationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Chart Configuration Script -->
+    <script>
+        const ctx = document.getElementById('optimizationChart').getContext('2d');
+        const curveData = {{ result.curve_data|safe }};
+        
+        const labels = curveData.map(d => d.q);
+        const revenues = curveData.map(d => d.revenue);
+        const costs = curveData.map(d => d.cost);
+        const profits = curveData.map(d => d.profit);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Ingreso Total ($)',
+                        data: revenues,
+                        borderColor: '#3B82F6',
+                        backgroundColor: '#3B82F622',
+                        borderWidth: 2,
+                        tension: 0.2,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Costo Total ($)',
+                        data: costs,
+                        borderColor: '#EF4444',
+                        backgroundColor: '#EF444422',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Ganancia / Beneficio ($)',
+                        data: profits,
+                        borderColor: '#10B981',
+                        backgroundColor: '#10B98122',
+                        borderWidth: 3,
+                        tension: 0.2,
+                        fill: true,
+                        pointRadius: function(context) {
+                            const index = context.dataIndex;
+                            const optimalQ = {{ result.optimal_q }};
+                            const qVal = labels[index];
+                            return Math.abs(qVal - optimalQ) < (labels[1] - labels[0]) ? 6 : 0;
+                        },
+                        pointBackgroundColor: '#10B981',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: 'Inter',
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Cantidad Producida (q)',
+                            font: {
+                                family: 'Inter',
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: '#F1F5F9'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Valor Monetario ($)',
+                            font: {
+                                family: 'Inter',
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: '#F1F5F9'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
