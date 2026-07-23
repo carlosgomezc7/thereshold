@@ -1,7 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
-from .models import Department
+from .models import Department, Metric
 from .calculators import calculate_metric_prediction, calculate_economic_optimization
+
 
 def dashboard_view(request):
     """
@@ -11,9 +12,9 @@ def dashboard_view(request):
     """
     # Usamos prefetch_related para optimizar las consultas a la base de datos
     departments = Department.objects.prefetch_related('metrics').all()
-    
+
     dashboard_data = []
-    
+
     for dept in departments:
         dept_data = {
             'department': dept.name,
@@ -27,18 +28,20 @@ def dashboard_view(request):
                 'name': metric.name,
                 'max_limit': metric.max_limit,
                 'current_value': metric.current_value,
+                'metric_type': metric.metric_type,
                 'unit': metric.unit,
                 'cutoff_date': metric.cutoff_date.strftime('%Y-%m-%d'),
                 'prediction': prediction
             }
             dept_data['metrics'].append(metric_info)
-            
+
         dashboard_data.append(dept_data)
 
     context = {
         'dashboard_data': dashboard_data
     }
     return render(request, 'core/dashboard.html', context)
+
 
 def generate_ai_summary(request):
     """
@@ -51,13 +54,47 @@ def generate_ai_summary(request):
         # 2. Formatear el prompt: prompt = f"Analiza estos recursos y dame recomendaciones: {datos}"
         # 3. Llamar a la API: response = gemini_client.generate_content(prompt)
         # 4. Obtener el texto: summary = response.text
-        
+
         # Respuesta simulada para el prototipo
         summary = "Este es un resumen predictivo generado por IA (Simulado). El departamento de IT está a punto de agotar su presupuesto de AWS en 3 días. Se recomienda apagar las instancias EC2 no utilizadas. El almacenamiento en la nube de Contabilidad está en niveles óptimos."
-        
+
         return JsonResponse({'status': 'success', 'summary': summary})
-    
+
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+
+def update_metric_value(request):
+    """
+    Actualiza el valor actual de una métrica desde el dashboard.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+    metric_id = request.POST.get('metric_id')
+    new_value = request.POST.get('current_value')
+    metric_type = request.POST.get('metric_type')
+
+    if not metric_id or new_value is None:
+        return JsonResponse({'status': 'error', 'message': 'Faltan datos del formulario'}, status=400)
+
+    try:
+        new_value = float(new_value)
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': 'Valor inválido'}, status=400)
+
+    metric = get_object_or_404(Metric, pk=metric_id)
+    metric.current_value = new_value
+    if metric_type in ['ingreso', 'egreso']:
+        metric.metric_type = metric_type
+    metric.save()
+
+    return JsonResponse({
+        'status': 'success',
+        'metric_id': metric.id,
+        'current_value': metric.current_value,
+        'unit': metric.unit,
+    })
+
 
 def optimization_view(request):
     """
@@ -70,9 +107,10 @@ def optimization_view(request):
     d = float(request.GET.get('d', 0.05))     # Ineficiencia de costo variable
     F = float(request.GET.get('F', 1000.0))   # Costo fijo
     max_cap = int(request.GET.get('max_cap', 1500))
-    
-    optimization_result = calculate_economic_optimization(a, b, c, d, F, max_cap)
-    
+
+    optimization_result = calculate_economic_optimization(
+        a, b, c, d, F, max_cap)
+
     context = {
         'params': {
             'a': a,
@@ -84,5 +122,5 @@ def optimization_view(request):
         },
         'result': optimization_result
     }
-    
+
     return render(request, 'core/optimization.html', context)

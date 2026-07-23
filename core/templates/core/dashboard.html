@@ -122,6 +122,20 @@
                                         <span class="text-xs font-bold text-slate-700">~{{ metric.prediction.daily_rate }}/día</span>
                                     </div>
                                 </div>
+
+                                <!-- Input interactivo para actualizar ingreso/egreso -->
+                                <form class="update-metric-form mt-4 space-y-3" data-metric-id="{{ metric.id }}">
+                                    <label class="block text-xs font-semibold text-slate-600">Actualizar {{ metric.name }} ({{ metric.metric_type|title }})</label>
+                                    <div class="flex gap-2 items-center">
+                                        <input type="number" step="any" name="current_value" value="{{ metric.current_value }}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Ingrese nuevo valor">
+                                        <select name="metric_type" class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                            <option value="ingreso" {% if metric.metric_type == 'ingreso' %}selected{% endif %}>Ingreso</option>
+                                            <option value="egreso" {% if metric.metric_type == 'egreso' %}selected{% endif %}>Egreso</option>
+                                        </select>
+                                        <button type="submit" class="update-metric-button bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">Guardar</button>
+                                    </div>
+                                    <p class="update-metric-status text-xs text-slate-500 hidden"></p>
+                                </form>
                             </div>
                             {% endfor %}
                         </div>
@@ -140,9 +154,59 @@
     </main>
 
     <!-- CSRF Token for fetch request -->
-    {% csrf_token %}
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 
     <script>
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+
+        function updateMetricFormHandler(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const metricId = form.dataset.metricId;
+            const statusText = form.querySelector('.update-metric-status');
+            const input = form.querySelector('[name=current_value]');
+            const value = input.value;
+
+            statusText.classList.remove('hidden', 'text-red-500', 'text-emerald-600');
+            statusText.classList.add('text-slate-500');
+            statusText.textContent = 'Guardando...';
+
+            const formData = new FormData();
+            formData.append('metric_id', metricId);
+            formData.append('current_value', value);
+
+            fetch('/api/metrics/update/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.classList.remove('text-slate-500');
+                    statusText.classList.add('text-emerald-600');
+                    statusText.textContent = `Guardado: ${data.current_value} ${data.unit}`;
+                } else {
+                    statusText.classList.remove('text-slate-500');
+                    statusText.classList.add('text-red-500');
+                    statusText.textContent = data.message || 'No se pudo guardar.';
+                }
+            })
+            .catch(() => {
+                statusText.classList.remove('text-slate-500');
+                statusText.classList.add('text-red-500');
+                statusText.textContent = 'Error de conexión.';
+            });
+        }
+
+        document.querySelectorAll('.update-metric-form').forEach(form => {
+            form.addEventListener('submit', updateMetricFormHandler);
+        });
+
         document.getElementById('ai-summary-btn').addEventListener('click', function() {
             const btn = this;
             const container = document.getElementById('ai-summary-container');
